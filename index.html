@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Rôo les Mains">
+<meta name="theme-color" content="#1a0533">
+<title>Rôo les Mains</title>
+<link href="https://fonts.googleapis.com/css2?family=Boogaloo&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #1a0533;
+  --card: #2d0a52;
+  --accent: #ff3cac;
+  --gold: #FFD700;
+  --green: #00e676;
+  --red: #ff1744;
+}
+
+html, body {
+  height: 100%; width: 100%;
+  font-family: 'Nunito', sans-serif;
+  background: var(--bg);
+  color: #fff;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(255,60,172,0.18) 0%, transparent 70%);
+  top: -150px; left: -150px;
+  pointer-events: none; z-index: 0;
+}
+body::after {
+  content: '';
+  position: fixed;
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(120,76,255,0.18) 0%, transparent 70%);
+  bottom: -100px; right: -100px;
+  pointer-events: none; z-index: 0;
+}
+
+/* ── SCREENS ── */
+.screen {
+  display: none;
+  position: absolute; inset: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 24px 16px 32px;
+  gap: 14px;
+  z-index: 1;
+}
+.screen.active { display: flex; }
+/* ready overrides to block */
+#ready.active { display: block; }
+
+/* ── HOME ── */
+.logo {
+  font-family: 'Boogaloo', cursive;
+  font-size: clamp(2rem, 9vw, 3rem);
+  color: var(--gold);
+  text-shadow: 0 0 24px rgba(255,215,0,0.4);
+  text-align: center; line-height: 1.1;
+  margin-top: 8px; flex-shrink: 0;
+}
+.logo em { color: var(--accent); font-style: normal; }
+
+.subtitle {
+  font-size: 0.82rem; opacity: 0.6;
+  text-align: center; max-width: 280px;
+  line-height: 1.5; flex-shrink: 0;
+}
+
+.themes-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  width: 100%; max-width: 440px; flex-shrink: 0;
+}
+.theme-btn {
+  background: var(--card); border: 2px solid transparent;
+  border-radius: 14px; padding: 10px 4px;
+  cursor: pointer; display: flex; flex-direction: column;
+  align-items: center; gap: 5px; color: #fff;
+  transition: border-color .15s, box-shadow .15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.theme-btn.selected { border-color: var(--accent); box-shadow: 0 0 14px rgba(255,60,172,0.4); }
+.theme-btn.custom-t { border-color: rgba(255,215,0,0.3); }
+.theme-btn.custom-t.selected { border-color: var(--gold); box-shadow: 0 0 14px rgba(255,215,0,0.4); }
+.theme-emoji { font-size: 1.65rem; line-height: 1; }
+.theme-name { font-size: 0.58rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; text-align: center; line-height: 1.25; opacity: 0.9; }
+
+.section-label { font-size: 0.8rem; opacity: 0.55; flex-shrink: 0; }
+.timer-row { display: flex; gap: 8px; flex-shrink: 0; }
+.timer-opt {
+  background: var(--card); border: 2px solid transparent;
+  border-radius: 30px; padding: 7px 16px;
+  font-size: 0.88rem; font-weight: 700;
+  cursor: pointer; color: #fff;
+  -webkit-tap-highlight-color: transparent;
+}
+.timer-opt.selected { border-color: var(--gold); color: var(--gold); }
+
+.start-btn {
+  background: linear-gradient(135deg, #ff3cac, #784cff);
+  border: none; border-radius: 50px;
+  padding: 15px 48px; font-size: 1.3rem;
+  font-family: 'Boogaloo', cursive; color: #fff;
+  cursor: pointer; letter-spacing: 1px;
+  box-shadow: 0 6px 28px rgba(255,60,172,0.4);
+  flex-shrink: 0; -webkit-tap-highlight-color: transparent;
+}
+
+.gyro-btn {
+  background: rgba(255,215,0,0.15);
+  border: 2px solid #FFD700;
+  border-radius: 50px; padding: 12px 24px;
+  color: #FFD700; font-size: 0.95rem; font-weight: 700;
+  font-family: 'Nunito', sans-serif; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  flex-shrink: 0; text-align: center;
+  width: 100%; max-width: 320px;
+}
+.gyro-btn.granted { border-color: #00e676; color: #00e676; background: rgba(0,230,118,0.1); }
+.gyro-btn.denied  { border-color: #ff1744; color: #ff1744; background: rgba(255,23,68,0.1); }
+
+/* ── MODAL ── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.8); z-index: 200;
+  align-items: center; justify-content: center; padding: 20px;
+}
+.modal-overlay.open { display: flex; }
+.modal-box {
+  background: #2a0848; border: 1px solid rgba(255,215,0,0.3);
+  border-radius: 24px; padding: 24px;
+  width: 100%; max-width: 340px;
+  display: flex; flex-direction: column; gap: 10px;
+  touch-action: auto;
+}
+.modal-title { font-family: 'Boogaloo', cursive; font-size: 1.4rem; color: var(--gold); text-align: center; }
+.modal-box label { font-size: 0.8rem; opacity: 0.65; }
+.modal-box input, .modal-box textarea {
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 10px; padding: 10px 14px;
+  color: #fff; font-size: 0.9rem; font-family: 'Nunito', sans-serif;
+  outline: none; width: 100%; touch-action: auto;
+}
+.modal-box textarea { height: 120px; resize: none; line-height: 1.6; }
+.modal-hint { font-size: 0.7rem; opacity: 0.45; }
+.modal-btns { display: flex; gap: 10px; margin-top: 4px; }
+.modal-cancel {
+  flex: 1; background: rgba(255,255,255,0.1); border: none;
+  border-radius: 50px; padding: 11px; color: #fff;
+  font-size: 0.9rem; font-weight: 700; cursor: pointer; font-family: 'Nunito', sans-serif;
+}
+.modal-save {
+  flex: 2; background: linear-gradient(135deg, #ff3cac, #784cff);
+  border: none; border-radius: 50px; padding: 11px;
+  color: #fff; font-size: 1rem; font-family: 'Boogaloo', cursive; cursor: pointer;
+}
+
+/* ── READY ── */
+#ready {
+  display: none;
+  position: absolute; inset: 0;
+  overflow-y: scroll;
+  -webkit-overflow-scrolling: touch;
+  background: var(--bg);
+  padding: 24px 16px 40px;
+  z-index: 1;
+}
+#ready.active { display: block; }
+#ready > * { display: block; width: 100%; margin-bottom: 14px; }
+.ready-title { font-family: 'Boogaloo', cursive; font-size: 2rem; color: var(--gold); text-align: center; }
+.ready-box {
+  background: rgba(255,255,255,0.07); border-radius: 16px;
+  padding: 16px; line-height: 1.7; font-size: 0.88rem;
+}
+.ready-box strong { color: var(--accent); }
+.gyro-btn {
+  display: block;
+  background: rgba(255,215,0,0.15);
+  border: 2px solid #FFD700;
+  border-radius: 14px; padding: 16px;
+  color: #FFD700; font-size: 1rem; font-weight: 700;
+  font-family: 'Nunito', sans-serif; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  width: 100%; text-align: center; box-sizing: border-box;
+}
+.gyro-btn.granted { border-color: #00e676; color: #00e676; background: rgba(0,230,118,0.1); }
+.gyro-btn.denied  { border-color: #ff1744; color: #ff1744; background: rgba(255,23,68,0.1); }
+.debug-box {
+  display: block;
+  background: #0a0020; border: 1px solid rgba(255,215,0,0.4);
+  border-radius: 14px; padding: 14px;
+  font-family: monospace; font-size: 0.9rem;
+  color: #FFD700; line-height: 1.9;
+  white-space: pre; width: 100%; box-sizing: border-box;
+}
+.go-btn {
+  display: block;
+  background: var(--green); color: #000;
+  border: none; border-radius: 14px;
+  padding: 16px; font-size: 1.2rem; width: 100%;
+  font-family: 'Boogaloo', cursive; cursor: pointer;
+  box-shadow: 0 6px 24px rgba(0,230,118,0.4);
+  -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+}
+.back-link { font-size: 0.82rem; opacity: 0.45; cursor: pointer; text-decoration: underline; text-align: center; }
+.debug-box {
+  background: #0a0020; border: 1px solid rgba(255,215,0,0.3);
+  border-radius: 14px; padding: 14px;
+  font-family: monospace; font-size: 0.9rem;
+  color: #FFD700; line-height: 1.9;
+  white-space: pre; flex-shrink: 0; width: 100%;
+}
+
+/* ══════════════════════════════
+   ── GAME SCREEN ──
+   Full screen, no rotation.
+   Word centered, tap left = pass, tap right = correct.
+   Score top-center, timer bottom-center.
+══════════════════════════════ */
+#game {
+  padding: 0; gap: 0; overflow: hidden;
+  background: #0e0020;
+}
+
+/* Left zone */
+.zone-left {
+  position: absolute;
+  top: 0; left: 0;
+  width: 50%; height: 100%;
+  z-index: 10;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: flex-start;
+  padding-left: 18px;
+  -webkit-tap-highlight-color: transparent;
+  background: transparent;
+  transition: background .12s;
+}
+.zone-left.flash  { background: rgba(255,23,68,0.25); }
+
+/* Right zone */
+.zone-right {
+  position: absolute;
+  top: 0; right: 0;
+  width: 50%; height: 100%;
+  z-index: 10;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: flex-end;
+  padding-right: 18px;
+  -webkit-tap-highlight-color: transparent;
+  background: transparent;
+  transition: background .12s;
+}
+.zone-right.flash { background: rgba(0,230,118,0.25); }
+
+/* Hint labels in each zone */
+.zone-hint {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  opacity: 0.3; pointer-events: none;
+}
+.zone-hint span:first-child { font-size: 2.2rem; }
+.zone-hint span:last-child  { font-size: 0.65rem; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
+.zone-left  .zone-hint span:last-child { color: var(--red); }
+.zone-right .zone-hint span:last-child { color: var(--green); }
+
+/* Divider line */
+.divider {
+  position: absolute;
+  top: 8%; bottom: 8%;
+  left: 50%;
+  width: 1px;
+  background: rgba(255,255,255,0.08);
+  transform: translateX(-50%);
+  z-index: 5; pointer-events: none;
+}
+
+/* Score */
+.game-score {
+  position: absolute;
+  top: 16px; left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255,255,255,0.1);
+  border-radius: 20px; padding: 4px 18px;
+  font-size: 0.9rem; font-weight: 700;
+  z-index: 20; white-space: nowrap;
+}
+.s-good { color: var(--green); }
+.s-bad  { color: var(--red); }
+
+/* Category */
+.game-cat {
+  position: absolute;
+  top: 62px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.7rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 2px;
+  opacity: 0.35; z-index: 20; white-space: nowrap;
+}
+
+/* Word — centered on full screen */
+.game-word {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 20; pointer-events: none;
+  font-family: 'Boogaloo', cursive;
+  font-size: clamp(2.8rem, 12vw, 6rem);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-align: center;
+  line-height: 1.05;
+  width: 88%;
+  transition: opacity .12s;
+  text-shadow: 0 2px 24px rgba(0,0,0,0.6);
+}
+
+/* Timer */
+.game-timer {
+  position: absolute;
+  bottom: 24px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex; flex-direction: column; align-items: center; gap: 0;
+}
+.timer-wrap { position: relative; width: 72px; height: 72px; }
+.timer-wrap svg { transform: rotate(-90deg); }
+.t-bg  { fill: none; stroke: rgba(255,255,255,0.1); stroke-width: 5; }
+.t-arc { fill: none; stroke: var(--accent); stroke-width: 5; stroke-linecap: round; transition: stroke-dashoffset 0.95s linear, stroke 0.4s; }
+.timer-num {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Boogaloo', cursive; font-size: 1.6rem;
+}
+
+/* ── RESULTS ── */
+#results { justify-content: center; }
+.res-title { font-family: 'Boogaloo', cursive; font-size: 2.4rem; color: var(--gold); }
+.res-score { font-family: 'Boogaloo', cursive; font-size: 6rem; line-height: 1; color: var(--accent); text-shadow: 0 0 40px rgba(255,60,172,0.5); }
+.res-label { font-size: 0.9rem; opacity: 0.55; margin-top: -8px; }
+.recap {
+  width: 100%; max-width: 360px;
+  max-height: 230px; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 7px;
+}
+.recap::-webkit-scrollbar { width: 3px; }
+.recap::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+.recap-item {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 12px; padding: 9px 14px;
+}
+.recap-icon { font-size: 1.1rem; }
+.recap-word { flex: 1; font-weight: 700; font-size: 0.92rem; }
+.recap-res { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+.recap-item.good .recap-res { color: var(--green); }
+.recap-item.bad  .recap-res { color: var(--red); }
+.replay-btn {
+  background: linear-gradient(135deg, #ff3cac, #784cff);
+  border: none; border-radius: 50px;
+  padding: 14px 42px; font-size: 1.2rem;
+  font-family: 'Boogaloo', cursive; color: #fff;
+  cursor: pointer; box-shadow: 0 6px 24px rgba(255,60,172,0.4);
+  -webkit-tap-highlight-color: transparent;
+}
+</style>
+</head>
+<body>
+
+<!-- ══ HOME ══ -->
+<div id="home" class="screen active">
+  <div class="logo">🙌 Rôo <em>les Mains</em></div>
+  <p class="subtitle">Tiens le téléphone au-dessus de ta tête et fais deviner les mots !</p>
+  <div class="themes-grid" id="themesGrid"></div>
+  <p class="section-label">⏱ Durée de la manche</p>
+  <div class="timer-row">
+    <button class="timer-opt selected" data-t="30">30s</button>
+    <button class="timer-opt" data-t="60">60s</button>
+    <button class="timer-opt" data-t="90">90s</button>
+  </div>
+  <button id="gyroBtn" class="gyro-btn">📲 Activer le gyroscope</button>
+  <button class="start-btn" id="startBtn">JOUER !</button>
+</div>
+
+<!-- ══ MODAL ══ -->
+<div class="modal-overlay" id="customModal">
+  <div class="modal-box">
+    <div class="modal-title">✏️ Liste personnalisée</div>
+    <label>Nom du thème</label>
+    <input type="text" id="customName" placeholder="Ex : Pays du monde" maxlength="22">
+    <label>Mots (un par ligne)</label>
+    <textarea id="customWords" placeholder="France&#10;Brésil&#10;Japon&#10;..."></textarea>
+    <p class="modal-hint">Minimum 2 mots requis</p>
+    <div class="modal-btns">
+      <button class="modal-cancel" id="modalCancel">Annuler</button>
+      <button class="modal-save"   id="modalSave">VALIDER ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ READY ══ -->
+<div id="ready" class="screen">
+  <div class="ready-title">Prêt ? 🚀</div>
+  <div class="ready-box">
+    📱 Téléphone <strong>à l'horizontale</strong> au-dessus de la tête, écran face à ton équipe.<br><br>
+    <span style="color:var(--green);font-weight:700">⬇️ Incline vers l'avant</span> → <strong>trouvé ✅</strong><br>
+    <span style="color:var(--red);font-weight:700">⬆️ Incline vers l'arrière</span> → <strong>passer ❌</strong><br><br>
+    <span style="opacity:0.5;font-size:0.82rem">Les zones tactiles gauche/droite fonctionnent aussi.</span>
+  </div>
+  <button class="go-btn" id="goBtn">C'EST PARTI !</button>
+  <div class="back-link" id="backLink">← Retour</div>
+</div>
+
+<!-- ══ GAME ══ -->
+<div id="game" class="screen">
+
+  <!-- Left tap zone -->
+  <div class="zone-left" id="zoneLeft">
+    <div class="zone-hint">
+      <span>❌</span>
+      <span>Passer</span>
+    </div>
+  </div>
+
+  <!-- Right tap zone -->
+  <div class="zone-right" id="zoneRight">
+    <div class="zone-hint">
+      <span>✅</span>
+      <span>Trouvé</span>
+    </div>
+  </div>
+
+  <!-- Divider -->
+  <div class="divider"></div>
+
+  <!-- Score -->
+  <div class="game-score">
+    ✅ <span class="s-good" id="scoreGood">0</span>
+    &nbsp;❌ <span class="s-bad" id="scoreBad">0</span>
+  </div>
+
+  <!-- Category -->
+  <div class="game-cat" id="catTag"></div>
+
+  <!-- Word -->
+  <div class="game-word" id="wordEl">—</div>
+
+  <!-- Timer -->
+  <div class="game-timer">
+    <div class="timer-wrap">
+      <svg width="72" height="72" viewBox="0 0 72 72">
+        <circle class="t-bg"  cx="36" cy="36" r="30"/>
+        <circle class="t-arc" id="tArc" cx="36" cy="36" r="30"
+          stroke-dasharray="188.5" stroke-dashoffset="0"/>
+      </svg>
+      <div class="timer-num" id="timerNum">30</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══ RESULTS ══ -->
+<div id="results" class="screen">
+  <div class="res-title">Fin de manche 🎉</div>
+  <div class="res-score" id="resScore">0</div>
+  <div class="res-label" id="resLabel">mots trouvés</div>
+  <div class="recap" id="recap"></div>
+  <button class="replay-btn" id="replayBtn">REJOUER</button>
+  <div class="back-link" id="homeLink">← Changer de thème</div>
+</div>
+
+<script>
+// ══ THEMES ══
+const THEMES = [
+  { id:'celebs',     emoji:'🌟', name:'Célébrités',
+    words:['Beyoncé','Shakira','Cristiano Ronaldo','Zidane','Taylor Swift','Elon Musk','Adele','Billie Eilish','Zlatan','Rihanna','Brad Pitt','Céline Dion','Stromae','Aya Nakamura','Kylian Mbappé','Lady Gaga','Eminem','Drake'] },
+  { id:'animaux',    emoji:'🦁', name:'Animaux',
+    words:['Éléphant','Girafe','Crocodile','Pingouin','Dauphin','Kangourou','Flamant rose','Panda','Gorille','Autruche','Méduse','Fourmi','Perroquet','Chauve-souris','Hippopotame','Tatou','Axolotl','Narval'] },
+  { id:'actions',    emoji:'🎭', name:'À mimer',
+    words:['Nager','Danser','Conduire','Dormir','Manger des spaghettis','Prendre un selfie','Faire du vélo','Pleurer','Applaudir','Téléphoner','Faire la cuisine','Peindre','Skier','Boxer','Méditer','Surfer','Jardiner','Chanter sous la douche'] },
+  { id:'disney',     emoji:'🏰', name:'Disney',
+    words:['Simba','Elsa','Mickey Mouse','Cendrillon','Stitch','Bambi','Dumbo','Pinocchio','Mulan','Hercule','Tarzan','Pocahontas','Raiponce','Ariel','Belle','Aladdin','Winnie','Woody'] },
+  { id:'hpotter',    emoji:'⚡', name:'Harry Potter',
+    words:['Hermione','Dumbledore','Voldemort','Ron Weasley','Drago Malefoy','Dobby','Hagrid','Sirius Black','Rogue','Bellatrix','Neville','Luna Lovegood','McGonagall','Lupin','Fleur Delacour','Hedwige','Cho Chang','Fenrir Greyback'] },
+  { id:'dessins',    emoji:'📺', name:'Dessins animés',
+    words:['Bart Simpson','Bob l\'éponge','Pikachu','Naruto','Doraemon','Astérix','Tintin','Lucky Luke','Goku','Scooby-Doo','Tom et Jerry','Droopy','Le Chat Potté','Bluey','Pucca','Spirou','Iznogoud','Calimero'] },
+  { id:'marvel',     emoji:'🦸', name:'Marvel',
+    words:['Spider-Man','Iron Man','Thor','Captain America','Black Widow','Hulk','Thanos','Loki','Black Panther','Doctor Strange','Ant-Man','Hawkeye','Gamora','Deadpool','Wolverine','Captain Marvel','Vision','Wanda'] },
+  { id:'princesses', emoji:'👸', name:'Princesses',
+    words:['Cendrillon','Belle','Ariel','Blanche-Neige','Raiponce','Aurore','Jasmine','Pocahontas','Mulan','Tiana','Mérida','Moana','Elsa','Anna','Raya','Asha','Isabela','Sofia'] },
+  { id:'pays',       emoji:'🌍', name:'Pays',
+    words:['France','Brésil','Japon','Australie','Canada','Mexique','Inde','Russie','Argentine','Égypte','Thaïlande','Nigeria','Norvège','Colombie','Nouvelle-Zélande','Portugal','Grèce','Vietnam'] },
+  { id:'capitales',  emoji:'🏛️', name:'Capitales',
+    words:['Paris','Tokyo','Londres','Rome','Madrid','Berlin','Pékin','Moscou','Washington','Le Caire','Buenos Aires','Nairobi','Séoul','Bangkok','Oslo','Lisbonne','Athènes','Bogotá'] },
+  { id:'femmes',     emoji:'👩‍🎤', name:'Femmes célèbres',
+    words:['Marie Curie','Cléopâtre','Jeanne d\'Arc','Simone de Beauvoir','Rosa Parks','Frida Kahlo','Malala','Amelia Earhart','Simone Veil','Indira Gandhi','Angela Merkel','Ada Lovelace','Harriet Tubman','Serena Williams','Oprah Winfrey','Michelle Obama','Valentina Terechkova','Aung San Suu Kyi'] },
+  { id:'metiers',    emoji:'👷', name:'Métiers',
+    words:['Pompier','Chirurgien','Astronaute','Boulanger','Architecte','Vétérinaire','Plongeur','Détective','Chef cuisinier','Pilote','Juge','Magicien','Volcanologue','Apiculteur','Sous-marinier','Dompteur','Glacier','Marionnettiste'] }
+];
+
+// ══ STATE ══
+let selectedTheme = THEMES[0];
+let customTheme   = null;
+let timerSec      = 30;
+let words = [], idx = 0, results = [], timeLeft = 30, timerId = null;
+const CIRC = 188.5;
+
+// ══ BUILD GRID ══
+function buildGrid() {
+  const grid = document.getElementById('themesGrid');
+  grid.innerHTML = '';
+  const all = customTheme ? [...THEMES, customTheme] : THEMES;
+  all.forEach(t => {
+    const btn = document.createElement('button');
+    btn.className = 'theme-btn' + (selectedTheme.id === t.id ? ' selected' : '') + (t.id === 'custom' ? ' custom-t' : '');
+    btn.innerHTML = `<span class="theme-emoji">${t.emoji}</span><span class="theme-name">${t.name}</span>`;
+    btn.addEventListener('click', () => {
+      selectedTheme = t;
+      grid.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+    });
+    grid.appendChild(btn);
+  });
+  const add = document.createElement('button');
+  add.className = 'theme-btn custom-t';
+  add.innerHTML = `<span class="theme-emoji">✏️</span><span class="theme-name">Ma liste</span>`;
+  add.addEventListener('click', () => document.getElementById('customModal').classList.add('open'));
+  grid.appendChild(add);
+}
+buildGrid();
+
+// ══ TIMER OPTS ══
+document.querySelectorAll('.timer-opt').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.timer-opt').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    timerSec = +btn.dataset.t;
+  });
+});
+
+// ══ MODAL ══
+document.getElementById('modalCancel').addEventListener('click', () =>
+  document.getElementById('customModal').classList.remove('open'));
+document.getElementById('modalSave').addEventListener('click', () => {
+  const name  = document.getElementById('customName').value.trim() || 'Ma liste';
+  const wList = document.getElementById('customWords').value
+    .split('\n').map(w => w.trim()).filter(w => w);
+  if (wList.length < 2) { alert('Ajoute au moins 2 mots !'); return; }
+  customTheme = { id:'custom', emoji:'✏️', name, words: wList };
+  selectedTheme = customTheme;
+  document.getElementById('customModal').classList.remove('open');
+  buildGrid();
+});
+
+// ══ NAV ══
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+document.getElementById('startBtn').addEventListener('click',  () => showScreen('ready'));
+document.getElementById('goBtn').addEventListener('click',     startGame);
+document.getElementById('backLink').addEventListener('click',  () => showScreen('home'));
+document.getElementById('replayBtn').addEventListener('click', () => showScreen('ready'));
+document.getElementById('homeLink').addEventListener('click',  () => showScreen('home'));
+
+// ══ GAME ══
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length-1; i > 0; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+function startGame() {
+  words = shuffle(selectedTheme.words);
+  idx = 0; results = []; timeLeft = timerSec;
+  showScreen('game');
+  document.getElementById('catTag').textContent = selectedTheme.emoji + ' ' + selectedTheme.name.toUpperCase();
+  updateScore(); showWord(); startTimer();
+  if (gyroGranted) attachGyro();
+}
+
+function showWord() {
+  if (idx >= words.length) { endGame(); return; }
+  const el = document.getElementById('wordEl');
+  el.style.opacity = '0';
+  setTimeout(() => { el.textContent = words[idx].toUpperCase(); el.style.opacity = '1'; }, 120);
+}
+
+function nextWord(correct) {
+  if (idx >= words.length) return;
+  results.push({ word: words[idx], correct });
+  flashZone(correct); updateScore(); idx++; showWord();
+}
+
+function flashZone(correct) {
+  const el = document.getElementById(correct ? 'zoneRight' : 'zoneLeft');
+  el.classList.add('flash');
+  setTimeout(() => el.classList.remove('flash'), 350);
+}
+
+function updateScore() {
+  document.getElementById('scoreGood').textContent = results.filter(r=>r.correct).length;
+  document.getElementById('scoreBad').textContent  = results.filter(r=>!r.correct).length;
+}
+
+// ══ TIMER ══
+function startTimer() {
+  clearInterval(timerId);
+  updateTimerUI();
+  timerId = setInterval(() => { timeLeft--; updateTimerUI(); if(timeLeft<=0) endGame(); }, 1000);
+}
+function updateTimerUI() {
+  document.getElementById('timerNum').textContent = timeLeft;
+  const arc = document.getElementById('tArc');
+  arc.style.strokeDashoffset = CIRC * (1 - timeLeft/timerSec);
+  arc.style.stroke = timeLeft<=10 ? '#ff1744' : timeLeft<=20 ? '#ff9800' : '#ff3cac';
+}
+
+// ══ TAP ZONES (fallback) ══
+document.getElementById('zoneLeft').addEventListener('click',  () => nextWord(false));
+document.getElementById('zoneRight').addEventListener('click', () => nextWord(true));
+
+// ══ GYROSCOPE ══
+let gyroGranted = false;
+let tiltLocked  = false;
+let tiltHandler = null;
+const TILT_THRESHOLD = 20;
+const TILT_LOCK_MS   = 900;
+
+const needsPermission = typeof DeviceOrientationEvent !== 'undefined' &&
+                        typeof DeviceOrientationEvent.requestPermission === 'function';
+
+const gyroBtn = document.getElementById('gyroBtn');
+
+if (!needsPermission) {
+  // Android / desktop — no permission API, just mark as granted
+  gyroGranted = true;
+  gyroBtn.textContent = '✅ Gyroscope disponible';
+  gyroBtn.classList.add('granted');
+  gyroBtn.disabled = true;
+}
+
+gyroBtn.addEventListener('click', () => {
+  if (!needsPermission) return;
+  DeviceOrientationEvent.requestPermission()
+    .then(state => {
+      if (state === 'granted') {
+        gyroGranted = true;
+        gyroBtn.textContent = '✅ Gyroscope activé !';
+        gyroBtn.classList.add('granted');
+        gyroBtn.disabled = true;
+        // Start debug feed
+        startDebug();
+      } else {
+        gyroGranted = false;
+        gyroBtn.textContent = '❌ Refusé — utilise les zones tactiles';
+        gyroBtn.classList.add('denied');
+        document.getElementById('debugBox').textContent = 'Permission refusée par iOS.';
+      }
+    })
+    .catch((err) => {
+      gyroBtn.textContent = '❌ Erreur';
+      gyroBtn.classList.add('denied');
+      document.getElementById('debugBox').textContent = 'Erreur: ' + err;
+    });
+});
+
+function startDebug() {
+  const box = document.getElementById('debugBox');
+  window.addEventListener('deviceorientation', (e) => {
+    box.textContent =
+      'alpha: ' + (e.alpha  !== null ? e.alpha.toFixed(1)  : 'null') + '\n' +
+      'beta:  ' + (e.beta   !== null ? e.beta.toFixed(1)   : 'null') + '\n' +
+      'gamma: ' + (e.gamma  !== null ? e.gamma.toFixed(1)  : 'null') + '\n' +
+      'abs:   ' + (e.absolute ? 'oui' : 'non');
+  });
+}
+
+function attachGyro() {
+  if (tiltHandler) window.removeEventListener('deviceorientation', tiltHandler);
+  tiltLocked = false;
+
+  tiltHandler = (e) => {
+    if (tiltLocked) return;
+
+    // In landscape mode on iPhone:
+    // gamma = left/right tilt of the SHORT axis = forward/backward tilt when held landscape
+    // When flat above head: gamma ≈ 0
+    // Tilt forward (screen toward audience, nose down): gamma goes negative (toward -90)
+    // Tilt backward (nose up): gamma goes positive (toward +90)
+    const gamma = e.gamma ?? 0;
+
+    if (gamma < -TILT_THRESHOLD) {
+      // Forward tilt → CORRECT ✅
+      tiltLocked = true;
+      nextWord(true);
+      setTimeout(() => { tiltLocked = false; }, TILT_LOCK_MS);
+    } else if (gamma > TILT_THRESHOLD) {
+      // Backward tilt → PASS ❌
+      tiltLocked = true;
+      nextWord(false);
+      setTimeout(() => { tiltLocked = false; }, TILT_LOCK_MS);
+    }
+  };
+
+  window.addEventListener('deviceorientation', tiltHandler);
+}
+
+function detachGyro() {
+  if (tiltHandler) {
+    window.removeEventListener('deviceorientation', tiltHandler);
+    tiltHandler = null;
+  }
+}
+
+// ══ END ══
+function endGame() {
+  clearInterval(timerId);
+  detachGyro();
+  const good = results.filter(r=>r.correct).length;
+  document.getElementById('resScore').textContent = good;
+  document.getElementById('resLabel').textContent = good<=1 ? 'mot trouvé' : 'mots trouvés';
+  const recap = document.getElementById('recap');
+  recap.innerHTML = '';
+  results.forEach(r => {
+    const d = document.createElement('div');
+    d.className = 'recap-item ' + (r.correct ? 'good' : 'bad');
+    d.innerHTML = `<span class="recap-icon">${r.correct?'✅':'❌'}</span>
+                   <span class="recap-word">${r.word}</span>
+                   <span class="recap-res">${r.correct?'Trouvé':'Passé'}</span>`;
+    recap.appendChild(d);
+  });
+  showScreen('results');
+}
+
+// ══ PWA ICON ══
+window.addEventListener('DOMContentLoaded', () => {
+  const c = document.createElement('canvas');
+  c.width = c.height = 192;
+  const ctx = c.getContext('2d');
+  const g = ctx.createLinearGradient(0,0,192,192);
+  g.addColorStop(0,'#1a0533'); g.addColorStop(1,'#3d0d6e');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.roundRect(0,0,192,192,40); ctx.fill();
+  ctx.font = '80px serif'; ctx.textAlign = 'center';
+  ctx.fillText('🙌', 96, 105);
+  ctx.fillStyle = '#FFD700';
+  ctx.font = 'bold 30px Arial Black';
+  ctx.fillText('RÔO', 96, 148);
+  ctx.fillStyle = '#ff3cac';
+  ctx.font = 'bold 16px Arial';
+  ctx.fillText('les mains', 96, 172);
+  const ico = document.createElement('link');
+  ico.rel = 'apple-touch-icon'; ico.href = c.toDataURL();
+  document.head.appendChild(ico);
+  const fav = document.createElement('link');
+  fav.rel = 'icon'; fav.href = c.toDataURL();
+  document.head.appendChild(fav);
+});
+</script>
+</body>
+</html>
