@@ -700,9 +700,12 @@ function attachGyro() {
   if (tiltHandler) window.removeEventListener('deviceorientation', tiltHandler);
   tiltLocked = false;
 
-  let lastGamma     = null;
-  let lastTime      = null;
-  const VELOCITY_THRESHOLD = 60; // degrés/seconde — mouvement brusque uniquement
+  let lastGamma         = null;
+  let lastTime          = null;
+  let lastDirection     = 0;    // +1 ou -1 selon dernière action
+  let reboundUntil      = 0;    // timestamp jusqu'auquel ignorer la direction inverse
+  const VELOCITY_THRESHOLD = 60;
+  const REBOUND_IGNORE_MS  = 1200; // durée pendant laquelle on ignore le rebond
 
   tiltHandler = (e) => {
     if (tiltLocked) return;
@@ -716,22 +719,35 @@ function attachGyro() {
       return;
     }
 
-    const dt       = (now - lastTime) / 1000; // secondes
-    const velocity = (gamma - lastGamma) / dt; // degrés/seconde
+    const dt       = (now - lastTime) / 1000;
+    const velocity = (gamma - lastGamma) / dt;
 
     lastGamma = gamma;
     lastTime  = now;
 
-    if (dt > 0.5) return; // ignore les gros gaps (téléphone immobile)
+    if (dt > 0.5) return;
 
-    if (velocity < -VELOCITY_THRESHOLD) {
-      // Mouvement brusque vers l'avant → TROUVÉ ✅
-      tiltLocked = true;
+    const goingForward  = velocity < -VELOCITY_THRESHOLD;
+    const goingBackward = velocity >  VELOCITY_THRESHOLD;
+
+    // Ignore si c'est la direction de rebond attendue
+    if (now < reboundUntil) {
+      if (goingForward  && lastDirection === -1) return;
+      if (goingBackward && lastDirection ===  1) return;
+    }
+
+    if (goingForward) {
+      // Incline vers l'avant → TROUVÉ ✅
+      lastDirection = -1;
+      reboundUntil  = now + REBOUND_IGNORE_MS;
+      tiltLocked    = true;
       nextWord(true);
       setTimeout(() => { tiltLocked = false; }, TILT_LOCK_MS);
-    } else if (velocity > VELOCITY_THRESHOLD) {
-      // Mouvement brusque vers l'arrière → PASSER ❌
-      tiltLocked = true;
+    } else if (goingBackward) {
+      // Incline vers l'arrière → PASSER ❌
+      lastDirection = 1;
+      reboundUntil  = now + REBOUND_IGNORE_MS;
+      tiltLocked    = true;
       nextWord(false);
       setTimeout(() => { tiltLocked = false; }, TILT_LOCK_MS);
     }
