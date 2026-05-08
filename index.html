@@ -702,7 +702,7 @@ function attachGyro() {
 
   let lastGamma     = null;
   let lastTime      = null;
-  const VELOCITY_THRESHOLD = 25; // degrés/seconde — mouvement brusque uniquement
+  const VELOCITY_THRESHOLD = 60; // degrés/seconde — mouvement brusque uniquement
 
   tiltHandler = (e) => {
     if (tiltLocked) return;
